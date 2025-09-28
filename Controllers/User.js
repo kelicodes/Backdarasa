@@ -2,7 +2,7 @@ import Usermodel from "../Models/User.js"
 import chatModel from "../Models/Chat.js"
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
-import cloudinary from "../config/Cloudconfig.js"
+import cloudinary from "../Config/Cloudconfig.js"
 
 export const userRegistration=async(req,res)=>{
 	try{
