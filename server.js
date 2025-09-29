@@ -20,7 +20,6 @@ app.use(cookieParser());
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
-  "http://localhost:5000",
   "https://darasa-six.vercel.app"
 ];
 

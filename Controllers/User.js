@@ -109,30 +109,48 @@ export const userRegistration202 = async (req, res) => {
   }
 };
 
-export const  Login=async(req,res)=>{
-	try{
-		const {email,password}=req.body
+export const Login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-		const user = await Usermodel.findOne({email})
-		
-		if(!user){
-			return res.json({message:"email not reg",success:false})
-		}
+    const user = await Usermodel.findOne({ email });
 
-		const pwordcompare= await bcrypt.compare(req.body.password, user.password)
-		if(pwordcompare){
-			const token=jwt.sign({id:user._id},process.env.secretword)
-			res.cookie("token",token)
-		
-			return res.json({success:true,message:"user logged in",user,token})
-		}else{
-			return res.json({success:false,message:"error in login controller"})
-		}
-	}catch(e){
-		console.log("error in signup controller",e.message)
-		return res.json({message:"error on login",success:false})
-	}
-}
+    if (!user) {
+      return res.json({ message: "email not reg", success: false });
+    }
+
+    const pwordcompare = await bcrypt.compare(password, user.password);
+    if (pwordcompare) {
+      const token = jwt.sign({ id: user._id }, process.env.secretword);
+
+      res.cookie("token", token);
+
+      // sanitize user (don’t send password hash)
+      const safeUser = {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        profilepic: user.profilepic, // ✅ add only fields you need
+      };
+
+      return res.json({
+        success: true,
+        message: "user logged in",
+        user: safeUser,
+        token,
+      });
+    } else {
+      return res.json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+  } catch (e) {
+    console.log("error in login controller", e.message);
+    return res.json({ message: "error on login", success: false });
+  }
+};
+
 
 
 
