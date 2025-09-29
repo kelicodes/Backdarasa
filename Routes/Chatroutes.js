@@ -19,6 +19,6 @@ ChatRouter.post('/creategrp',Userauth,creategroupchat)
 ChatRouter.post("/addtogrp",Userauth,Addtogroup)
 ChatRouter.post('/remove',Userauth,removefromgroup)
 ChatRouter.post('/create',Userauth,create)
-ChatRouter.post('/accessGroups',Userauth,accessGroups )
+ChatRouter.post('/accessgroups',Userauth,accessGroups )
 
 export default ChatRouter
