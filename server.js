@@ -16,26 +16,40 @@ app.use(cookieParser());
 
 
 
-// --- Express CORS middleware ---
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "https://darasa-six.vercel.app"
 ];
 
+// ✅ CORS middleware
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin) return callback(null, true); // allow server-to-server / tools like Postman
+
+      // normalize (remove trailing slash if present)
+      const cleanOrigin = origin.replace(/\/$/, "");
+
+      if (allowedOrigins.includes(cleanOrigin)) {
         callback(null, true);
       } else {
-        callback(new Error("Not allowed by CORS"));
+        callback(new Error("Not allowed by CORS: " + origin));
       }
     },
     credentials: true,
-    methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"], // ✅ important for axios with token
   })
 );
+
+// ✅ Explicitly handle preflight OPTIONS requests
+app.options("*", cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
 
 
 // --- Connect to DB ---
