@@ -68,11 +68,6 @@ export const Fetchgroups=async(req,res)=>{
 }
 
 
-
-
-
-
-
 export const fetchchats=async(req,res)=>{
 	try{
 		const userId=req.user._id
@@ -91,31 +86,31 @@ export const fetchchats=async(req,res)=>{
 	}
 }
 
+
+
 export const creategroupchat = async (req, res) => {
   try {
     const { name, users } = req.body;
 
-    if (!name || !users) {
+    if (!name || !users || !Array.isArray(users) || users.length < 1) {
       return res.status(400).json({
-        message: "Name and users are required",
+        message: "Name and at least 1 user are required",
         success: false,
       });
     }
 
-    let usersArray = Array.isArray(users) ? users : JSON.parse(users);
-
-    if (usersArray.length < 2) {
-      return res.status(400).json({
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({
+        message: "Unauthorized: user not logged in",
         success: false,
-        message: "At least 2 users are required to create a group",
       });
     }
 
-    // Add logged-in user to the group
-    usersArray.push(req.user._id);
+    // Add logged-in user to users array
+    const usersArray = [...users, req.user._id];
 
     const groupChat = await chatModel.create({
-      chatname: name, // use variable `name`, not string literal
+      chatname: name,
       users: usersArray,
       isGroupChat: true,
       admin: req.user._id,
