@@ -91,39 +91,56 @@ export const fetchchats=async(req,res)=>{
 	}
 }
 
+export const creategroupchat = async (req, res) => {
+  try {
+    const { name, users } = req.body;
 
-export const creategroupchat=async(req,res)=>{
-	try{
-		const {name,users}=req.body
-		if(!name || !users){
-			return res.status(201).json({message:"users and names needed",success:false})
-		}
-		let usersArray = Array.isArray(users) ? users : JSON.parse(users)
+    if (!name || !users) {
+      return res.status(400).json({
+        message: "Name and users are required",
+        success: false,
+      });
+    }
 
+    let usersArray = Array.isArray(users) ? users : JSON.parse(users);
 
-		if(usersArray.length < 2){
-			return res.json({success:false,message:"more than 2 users are needed"})
-		}
+    if (usersArray.length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: "At least 2 users are required to create a group",
+      });
+    }
 
+    // Add logged-in user to the group
+    usersArray.push(req.user._id);
 
-		usersArray.push(req.user._id)
+    const groupChat = await chatModel.create({
+      chatName: name, // use variable `name`, not string literal
+      users: usersArray,
+      isGroupChat: true,
+      admin: req.user._id,
+    });
 
+    const fullGroupChat = await chatModel
+      .findById(groupChat._id)
+      .populate("users", "-password")
+      .populate("admin", "-password");
 
-		const groupchat=await  chatModel.create({
-			chatname:"name",
-			users:usersArray,
-			isGroupChat:true,
-			admin:req.user._id
-		})
+    return res.status(200).json({
+      success: true,
+      message: "Group created successfully",
+      fullGroupChat,
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to create group",
+      error: e.message,
+    });
+  }
+};
 
-		
-		const fullgroupchat = await chatModel.findById(groupchat._id).populate("users","-password").populate("admin","-password")
-		return res.status(200).json({success:true,message:"gropu created",fullgroupchat})
-	}catch(e){
-		console.log(e)
-		return res.json({success:false,message:"failure in create group"})
-	}
-}
 
 
 
