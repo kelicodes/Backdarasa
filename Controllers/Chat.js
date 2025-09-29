@@ -115,7 +115,7 @@ export const creategroupchat = async (req, res) => {
     usersArray.push(req.user._id);
 
     const groupChat = await chatModel.create({
-      chatName: name, // use variable `name`, not string literal
+      chatname: name, // use variable `name`, not string literal
       users: usersArray,
       isGroupChat: true,
       admin: req.user._id,
