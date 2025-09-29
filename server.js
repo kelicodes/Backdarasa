@@ -15,6 +15,7 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
+// --- Allowed origins ---
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
@@ -37,11 +38,8 @@ export const io = new Server(server, {
   pingTimeout: 60000,
   cors: {
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
+      if (!origin || allowedOrigins.includes(origin)) callback(null, true);
+      else callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
   },
@@ -54,52 +52,54 @@ let onlineUsers = {}; // { userId: socket.id }
 io.on("connection", (socket) => {
   console.log("New client connected:", socket.id);
 
-  // --- SETUP: User comes online ---
+  // --- Setup user ---
   socket.on("setup", (user) => {
-    socket.join(user._id); // join a room with their userId
+    socket.userId = user._id;
+    socket.join(user._id); // join a room with their own userId
     onlineUsers[user._id] = socket.id;
+
     socket.emit("connected");
     io.emit("online-users", Object.keys(onlineUsers)); // broadcast online users
   });
 
-  // --- JOIN CHAT ROOM ---
+  // --- Join a chat room ---
   socket.on("JOIN_CHAT", (chatId) => {
     socket.join(chatId);
-    console.log(`User joined chat ${chatId}`);
+    console.log(`User ${socket.userId} joined chat ${chatId}`);
   });
 
-  // --- TYPING INDICATORS ---
+  // --- Typing indicators ---
   socket.on("typing", (chatId) => {
-    socket.in(chatId).emit("typing", { userId: socket.id });
+    socket.in(chatId).emit("typing", { userId: socket.userId });
   });
 
   socket.on("stop typing", (chatId) => {
-    socket.in(chatId).emit("stop typing", { userId: socket.id });
+    socket.in(chatId).emit("stop typing", { userId: socket.userId });
   });
 
-  // --- MESSAGES ---
+  // --- New message ---
   socket.on("new message", (message) => {
     const chatId = message.chatId;
-    // emit to all users in that chat except sender
+    if (!chatId) return;
+
+    // emit to everyone in that chat except sender
     socket.to(chatId).emit("new message", message);
   });
 
-  // --- DISCONNECT ---
+  // --- Disconnect ---
   socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-    for (let userId in onlineUsers) {
-      if (onlineUsers[userId] === socket.id) {
-        delete onlineUsers[userId];
-      }
+    console.log(`User disconnected: ${socket.userId}`);
+    if (socket.userId) {
+      delete onlineUsers[socket.userId];
     }
     io.emit("online-users", Object.keys(onlineUsers));
   });
 
   socket.on("disconnecting", () => {
-    console.log("Disconnecting:", socket.id);
+    console.log(`Disconnecting: ${socket.userId}`);
   });
 
-  // --- VIDEO CALL EVENTS (optional) ---
+  // --- Video call events (optional) ---
   socket.on("joinroom", (roomId, userId) => {
     socket.join(roomId);
     console.log(`${userId} joined room ${roomId}`);
@@ -120,5 +120,5 @@ io.on("connection", (socket) => {
 });
 
 // --- Start server ---
-const myport = process.env.PORT || 4000;
-server.listen(myport, () => console.log(`Listening on port ${myport}`));
+const PORT = process.env.PORT || 4000;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
