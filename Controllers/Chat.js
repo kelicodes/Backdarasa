@@ -58,7 +58,7 @@ export const accessGroups=async(req,res)=>{
 	try{
 		const {groupid}=req.body
 		const groups = await chatModel.find({
-			isGroupChat: true
+			groupid
 		})
 		return res.json({message:"group fetched",success:true,groups})
 	}catch(err){
