@@ -11,47 +11,15 @@ import { Server } from "socket.io";
 
 // --- Init express ---
 const app = express();
-app.use(cors({ origin: true, credentials: true }))
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
-
-
 
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "https://darasa-six.vercel.app"
 ];
-
-// // ✅ CORS middleware
-// app.use(
-//   cors({
-//     origin: (origin, callback) => {
-//       if (!origin) return callback(null, true); // allow server-to-server / tools like Postman
-
-//       // normalize (remove trailing slash if present)
-//       const cleanOrigin = origin.replace(/\/$/, "");
-
-//       if (allowedOrigins.includes(cleanOrigin)) {
-//         callback(null, true);
-//       } else {
-//         callback(new Error("Not allowed by CORS: " + origin));
-//       }
-//     },
-//     credentials: true,
-//     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-//     allowedHeaders: ["Content-Type", "Authorization"], // ✅ important for axios with token
-//   })
-// );
-
-// // ✅ Explicitly handle preflight OPTIONS requests
-// app.options("*", cors({
-//   origin: allowedOrigins,
-//   credentials: true,
-//   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-//   allowedHeaders: ["Content-Type", "Authorization"],
-// }));
-
 
 // --- Connect to DB ---
 Db();
@@ -79,10 +47,59 @@ export const io = new Server(server, {
   },
 });
 
+// --- Online users tracker ---
+let onlineUsers = {}; // { userId: socket.id }
+
 // --- Socket.IO events ---
 io.on("connection", (socket) => {
   console.log("New client connected:", socket.id);
 
+  // --- SETUP: User comes online ---
+  socket.on("setup", (user) => {
+    socket.join(user._id); // join a room with their userId
+    onlineUsers[user._id] = socket.id;
+    socket.emit("connected");
+    io.emit("online-users", Object.keys(onlineUsers)); // broadcast online users
+  });
+
+  // --- JOIN CHAT ROOM ---
+  socket.on("JOIN_CHAT", (chatId) => {
+    socket.join(chatId);
+    console.log(`User joined chat ${chatId}`);
+  });
+
+  // --- TYPING INDICATORS ---
+  socket.on("typing", (chatId) => {
+    socket.in(chatId).emit("typing", { userId: socket.id });
+  });
+
+  socket.on("stop typing", (chatId) => {
+    socket.in(chatId).emit("stop typing", { userId: socket.id });
+  });
+
+  // --- MESSAGES ---
+  socket.on("new message", (message) => {
+    const chatId = message.chatId;
+    // emit to all users in that chat except sender
+    socket.to(chatId).emit("new message", message);
+  });
+
+  // --- DISCONNECT ---
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+    for (let userId in onlineUsers) {
+      if (onlineUsers[userId] === socket.id) {
+        delete onlineUsers[userId];
+      }
+    }
+    io.emit("online-users", Object.keys(onlineUsers));
+  });
+
+  socket.on("disconnecting", () => {
+    console.log("Disconnecting:", socket.id);
+  });
+
+  // --- VIDEO CALL EVENTS (optional) ---
   socket.on("joinroom", (roomId, userId) => {
     socket.join(roomId);
     console.log(`${userId} joined room ${roomId}`);
@@ -100,24 +117,6 @@ io.on("connection", (socket) => {
   socket.on("candidate", (data) => {
     socket.to(data.roomId).emit("candidate", { candidate: data.candidate, sender: socket.id });
   });
-
-  // --- CHAT EVENTS ---
-  socket.on("setup", (userdata) => {
-    socket.join(userdata._id);
-    socket.emit("connected");
-  });
-
-  socket.on("JOIN_CHAT", (chatid) => {
-    socket.join(chatid);
-    console.log(`User joined chat ${chatid}`);
-  });
-
-  socket.on("typing", (chatid) => socket.in(chatid).emit("typing"));
-  socket.on("stop typing", (chatid) => socket.in(chatid).emit("stop typing"));
-
-  // --- DISCONNECT ---
-  socket.on("disconnect", () => console.log("User disconnected:", socket.id));
-  socket.on("disconnecting", () => console.log("Disconnecting:", socket.id));
 });
 
 // --- Start server ---
