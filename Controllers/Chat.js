@@ -70,7 +70,7 @@ export const accessGroups=async(req,res)=>{
 
 
 
-import chatModel from "../Models/Chat.js"; // make sure your path is correct
+
 
 export const Fetchgroups = async (req, res) => {
   try {
