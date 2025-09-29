@@ -70,16 +70,25 @@ export const accessGroups=async(req,res)=>{
 
 
 
-export const Fetchgroups=async(req,res)=>{
-	try{
-		const groups = await chatModel.find({isGroupChat: true})
+import chatModel from "../Models/Chat.js"; // make sure your path is correct
 
-		return res.json({success:true,message:"Groups fetched",groups})
-	}catch(e){
-		console.error("Fetchgroups error:", err);
+export const Fetchgroups = async (req, res) => {
+  try {
+    const userId = req.user._id; // get the logged-in user's ID
+
+    // Fetch only groups where the user is a member
+    const groups = await chatModel.find({
+      isGroupChat: true,
+      users: { $elemMatch: { $eq: userId } } // user must be in the users array
+    });
+
+    return res.json({ success: true, message: "Groups fetched", groups });
+  } catch (err) {
+    console.error("Fetchgroups error:", err);
     res.status(500).json({ success: false, message: "Fetchgroups error" });
-	}
-}
+  }
+};
+
 
 
 export const fetchchats=async(req,res)=>{
