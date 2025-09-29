@@ -4,7 +4,7 @@ creategroupchat,
 renamegroup,
 Addtogroup,
 removefromgroup,create,
-Fetchgroups} from "../Controllers/Chat.js"
+Fetchgroups,accessGroups} from "../Controllers/Chat.js"
 import Userauth from '../Middleware/Userauth.js'
 
 import express from "express"
@@ -19,5 +19,6 @@ ChatRouter.post('/creategrp',Userauth,creategroupchat)
 ChatRouter.post("/addtogrp",Userauth,Addtogroup)
 ChatRouter.post('/remove',Userauth,removefromgroup)
 ChatRouter.post('/create',Userauth,create)
+ChatRouter.get('/accessGroups',Userauth,accessGroups )
 
 export default ChatRouter

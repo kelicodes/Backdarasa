@@ -54,6 +54,20 @@ export const create = async (req, res) => {
 };
 
 
+export const accessGroups=async(req,res)=>{
+	try{
+		const {groupid}=req.body
+		const groups = await chatModel.find({
+			isGroupChat: true
+		})
+		return res.json({message:"group fetched",success:true,groups})
+	}catch(err){
+		console.error("Create chat error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+	}
+}
+
+
 
 
 export const Fetchgroups=async(req,res)=>{
